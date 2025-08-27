@@ -1,0 +1,48 @@
+apiVersion: cloudresources.appvia.io/v2beta2
+kind: CloudResourcePlan
+metadata:
+  name: crk-aws-vpc
+spec:
+  version: 0.0.2
+  cloud: aws
+  description: Provisions an AWS VPC for CloudResourceKind tests
+  inputs:
+  - description: Name of the VPC
+    name: name
+    type: string
+    validation:
+      pattern: '[a-z0-9-]+'
+      required: true
+      minLength: 3
+  scope:
+    allWorkspaces: true
+  terraform:
+    moduleURL: https://github.com/terraform-aws-modules/terraform-aws-vpc
+    moduleVersion: v5.16.0
+    tfVarsTemplate: |-
+      name = "{{ .Inputs.name }}"
+      cidr = "10.0.0.0/16"
+
+      azs             = ["eu-west-2a", "eu-west-2b", "eu-west-2c"]
+      private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+      public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+
+      # Explicit VPC DNS settings
+      enable_dns_support   = true
+      enable_dns_hostnames = true
+
+      # Avoid managing default NACL to prevent missing required argument errors
+      manage_default_network_acl = false
+      # Also avoid managing default SG and route table
+      manage_default_security_group = false
+      manage_default_route_table   = false
+
+      enable_nat_gateway = false
+      enable_vpn_gateway = false
+
+      tags = {
+        Terraform   = "true"
+        Environment = "dev"
+        wf_crk      = "aws-vpc"
+        wf_stack    = "{{ .Stack.Name }}"
+      }

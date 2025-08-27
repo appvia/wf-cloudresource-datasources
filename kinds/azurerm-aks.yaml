@@ -1,0 +1,56 @@
+apiVersion: cloudresources.appvia.io/v2beta2
+kind: CloudResourceKind
+metadata:
+  name: azurerm-aks
+spec:
+  description: Azure AKS cluster resource kind
+  version: "1.0.0"
+  provider: terraform
+  cloud: azure
+  terraform:
+    search:
+      template: |
+        # List AKS clusters by tag using azurerm_resources
+        data "azurerm_resources" "aks" {
+          type = "Microsoft.ContainerService/managedClusters"
+
+          required_tags = var.resource_tags
+        }
+
+        # Extract cluster names from IDs
+        locals {
+          cluster_ids    = data.azurerm_resources.aks.resources[*].id
+          cluster_groups = data.azurerm_resources.aks.resources[*].resource_group_name
+          cluster_names  = [for id in local.cluster_ids : regex(".*/managedClusters/([^/]+)$", id)[0]]
+        }
+
+        output "output" {
+          value = [for idx, name in local.cluster_names : {
+            name                = name
+            resource_group_name = local.cluster_groups[idx]
+          }]
+        }
+    resource:
+      template: |
+        # To look up a specific AKS cluster we also need its resource group
+        # Expect identifiers: name, resource_group_name
+        data "azurerm_kubernetes_cluster" "result" {
+          name                = var.name
+          resource_group_name = var.resource_group_name
+        }
+
+        output "id" {
+          value = data.azurerm_kubernetes_cluster.result.id
+        }
+
+        output "kubernetes_version" {
+          value = data.azurerm_kubernetes_cluster.result.kubernetes_version
+        }
+
+        output "dns_prefix" {
+          value = data.azurerm_kubernetes_cluster.result.dns_prefix
+        }
+
+        output "tags" {
+          value = data.azurerm_kubernetes_cluster.result.tags
+        }

@@ -1,0 +1,37 @@
+apiVersion: cloudresources.appvia.io/v2beta2
+kind: CloudResourcePlan
+metadata:
+  name: crk-aws-kms-key
+spec:
+  version: 0.0.3
+  cloud: aws
+  description: Provisions an AWS KMS Key for CloudResourceKind tests
+  inputs:
+  - description: Alias for the KMS key (without 'alias/' prefix)
+    name: alias
+    type: string
+    validation:
+      pattern: '[a-z0-9-]+'
+      required: true
+      minLength: 3
+  - description: Description for the KMS key
+    name: description
+    type: string
+    validation:
+      required: false
+  scope:
+    allWorkspaces: true
+  terraform:
+    moduleURL: https://github.com/cloudposse/terraform-aws-kms-key
+    moduleVersion: "0.12.2"
+    tfVarsTemplate: |-
+      alias       = "alias/{{ .Inputs.alias }}"
+      description = "{{ .Inputs.description | default (printf "KMS key for %s" .Stack.Name) }}"
+      enable_key_rotation = false
+
+      tags = {
+        Terraform   = "true"
+        Environment = "dev"
+        wf_crk      = "aws-kms-key"
+        wf_stack    = "{{ .Stack.Name }}"
+      }

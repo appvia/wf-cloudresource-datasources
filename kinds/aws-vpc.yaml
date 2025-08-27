@@ -1,0 +1,60 @@
+apiVersion: cloudresources.appvia.io/v2beta2
+kind: CloudResourceKind
+metadata:
+  name: aws-vpc
+spec:
+  description: AWS VPC resource kind
+  version: "1.0.0"
+  provider: terraform
+  cloud: aws
+  terraform:
+    search:
+      template: |
+        # List all VPCs and then filter by tags if provided
+        data "aws_vpcs" "all" {}
+
+        data "aws_vpc" "details" {
+          for_each = toset(data.aws_vpcs.all.ids)
+          id       = each.value
+        }
+
+        locals {
+          # Filter VPCs based on tags if provided, otherwise return all
+          filtered_vpcs = var.resource_tags == {} ? data.aws_vpc.details : {
+            for id, vpc in data.aws_vpc.details :
+            id => vpc
+            if alltrue([
+              for tag_key, tag_value in var.resource_tags :
+              lookup(vpc.tags, tag_key, "") == tag_value
+            ])
+          }
+        }
+
+        # Output the filtered results with consistent structure
+        output "output" {
+          value = [for id, vpc in local.filtered_vpcs : {
+            vpc_id = id
+            name   = lookup(vpc.tags, "Name", "")
+          }]
+        }
+
+    resource:
+      template: |
+        # Expect identifier: vpc_id
+        data "aws_vpc" "result" {
+          id = var.vpc_id
+        }
+
+        output "vpc_id" {
+          value = data.aws_vpc.result.id
+        }
+
+        output "cidr_block" {
+          value = data.aws_vpc.result.cidr_block
+        }
+
+        output "tags" {
+          value = data.aws_vpc.result.tags
+        }
+
+

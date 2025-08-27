@@ -1,0 +1,69 @@
+apiVersion: cloudresources.appvia.io/v2beta2
+kind: CloudResourceKind
+metadata:
+  name: aws-eks
+spec:
+  description: AWS EKS cluster resource kind
+  version: "1.0.0"
+  provider: terraform
+  cloud: aws
+  terraform:
+    search:
+      template: |
+        data "aws_eks_clusters" "all" {}
+
+        data "aws_eks_cluster" "details" {
+          for_each = toset(data.aws_eks_clusters.all.names)
+          name     = each.value
+        }
+
+        locals {
+          # Filter clusters based on tags if provided, otherwise return all
+          filtered_clusters = var.resource_tags == {} ? data.aws_eks_cluster.details : {
+            for name, cluster in data.aws_eks_cluster.details :
+            name => cluster
+            if alltrue([
+              for tag_key, tag_value in var.resource_tags :
+              lookup(cluster.tags, tag_key, "") == tag_value
+            ])
+          }
+        }
+
+        # Output the filtered results with consistent structure
+        output "output" {
+          value = [for name, cluster in local.filtered_clusters : {
+            name = name
+            arn  = cluster.arn
+          }]
+        }
+
+    resource:
+      template: |
+        data "aws_eks_cluster" "result" {
+          name = var.name
+        }
+
+        output "arn" {
+          value = data.aws_eks_cluster.result.arn
+        }
+
+        output "endpoint" {
+          value = data.aws_eks_cluster.result.endpoint
+        }
+
+        output "version" {
+          value = data.aws_eks_cluster.result.version
+        }
+
+        output "tags" {
+          value = data.aws_eks_cluster.result.tags
+        }
+
+        output "vpc_id" {
+          value = data.aws_eks_cluster.result.vpc_config[0].cluster_security_group_id
+        }
+
+        output "subnet_ids" {
+          value = data.aws_eks_cluster.result.vpc_config[0].subnet_ids
+        }
+

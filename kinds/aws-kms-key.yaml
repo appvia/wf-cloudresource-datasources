@@ -1,0 +1,83 @@
+apiVersion: cloudresources.appvia.io/v2beta2
+kind: CloudResourceKind
+metadata:
+  name: aws-kms-key
+spec:
+  description: AWS KMS Key resource kind
+  version: "1.0.0"
+  provider: terraform
+  cloud: aws
+  terraform:
+    search:
+      template: |
+        # Enumerate KMS keys via Resource Groups Tagging API and filter by tags
+        data "aws_resourcegroupstaggingapi_resources" "kms" {
+          resource_type_filters = ["kms:key"]
+        }
+
+        locals {
+          # Normalize tag list into a map for each resource
+          tagged_resources = [
+            for r in data.aws_resourcegroupstaggingapi_resources.kms.resource_tag_mapping_list : {
+              arn  = r.resource_arn
+              tags = try(r.tags, {})
+            }
+          ]
+
+          filtered_resources = var.resource_tags == {} ? local.tagged_resources : [
+            for r in local.tagged_resources : r
+            if alltrue([
+              for tag_key, tag_value in var.resource_tags :
+              lookup(r.tags, tag_key, "") == tag_value
+            ])
+          ]
+
+          # Derive key IDs for enabled-state checks
+          filtered_key_ids = toset([
+            for r in local.filtered_resources : element(split("/", r.arn), length(split("/", r.arn)) - 1)
+          ])
+        }
+
+        # Fetch key details to determine enabled state (requires kms:DescribeKey)
+        data "aws_kms_key" "details" {
+          for_each = local.filtered_key_ids
+          key_id   = each.value
+        }
+
+        output "output" {
+          value = [
+            for r in local.filtered_resources : merge(
+              {
+                key_id = element(split("/", r.arn), length(split("/", r.arn)) - 1)
+                arn    = r.arn
+              },
+              { for k, v in r.tags : "tag_${k}" => v }
+            )
+            if try(data.aws_kms_key.details[
+              element(split("/", r.arn), length(split("/", r.arn)) - 1)
+            ].enabled, false)
+          ]
+        }
+
+    resource:
+      template: |
+        # Expect identifier: key_id
+        data "aws_kms_key" "result" {
+          key_id = var.key_id
+        }
+
+        output "key_id" {
+          value = data.aws_kms_key.result.key_id
+        }
+
+        output "arn" {
+          value = data.aws_kms_key.result.arn
+        }
+
+        output "key_usage" {
+          value = data.aws_kms_key.result.key_usage
+        }
+
+        output "key_spec" {
+          value = data.aws_kms_key.result.key_spec
+        }
