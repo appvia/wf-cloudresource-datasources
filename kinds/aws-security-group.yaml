@@ -1,0 +1,67 @@
+apiVersion: cloudresources.appvia.io/v2beta2
+kind: CloudResourceKind
+metadata:
+  name: aws-security-group
+spec:
+  description: AWS Security Group resource kind
+  version: "1.0.0"
+  provider: terraform
+  cloud: aws
+  terraform:
+    search:
+      template: |
+        # List all Security Groups and then filter by tags if provided
+        data "aws_security_groups" "all" {}
+
+        data "aws_security_group" "details" {
+          for_each = toset(data.aws_security_groups.all.ids)
+          id       = each.value
+        }
+
+        locals {
+          # Filter Security Groups based on tags if provided, otherwise return all
+          filtered_sgs = var.resource_tags == {} ? data.aws_security_group.details : {
+            for id, sg in data.aws_security_group.details :
+            id => sg
+            if alltrue([
+              for tag_key, tag_value in var.resource_tags :
+              lookup(try(sg.tags, {}), tag_key, "") == tag_value
+            ])
+          }
+        }
+
+        # Output the filtered results with consistent structure
+        output "output" {
+          value = [for id, sg in local.filtered_sgs : {
+            security_group_id = id
+            name              = try(sg.name, "")
+            vpc_id            = try(sg.vpc_id, "")
+          }]
+        }
+
+    resource:
+      template: |
+        # Expect identifier: security_group_id
+        data "aws_security_group" "result" {
+          id = var.security_group_id
+        }
+
+        output "security_group_id" {
+          value = data.aws_security_group.result.id
+        }
+
+        output "name" {
+          value = data.aws_security_group.result.name
+        }
+
+        output "vpc_id" {
+          value = data.aws_security_group.result.vpc_id
+        }
+
+        output "description" {
+          value = try(data.aws_security_group.result.description, "")
+        }
+
+        output "tags" {
+          value = try(data.aws_security_group.result.tags, {})
+        }
