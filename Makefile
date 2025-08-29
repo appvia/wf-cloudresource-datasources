@@ -91,7 +91,7 @@ endif
 	@echo "Searching for cloud resources of kind: $(KIND) using cloud access: $(RESOLVED_CLOUDACCESS)"
 	@cd kind-validation/$(KIND) && \
 		source search.env && \
-		wf search cloudresource --kind $(KIND) --target $(RESOLVED_CLOUDACCESS) --filter "$$FILTER" --save
+		wf search cloudresource --kind $(KIND) --target $(RESOLVED_CLOUDACCESS) --filter "$$FILTER" --save --delete-after-save
 
 # Sort kinds by dependency order (dependencies first)
 sort-kinds:
