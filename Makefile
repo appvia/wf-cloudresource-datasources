@@ -93,8 +93,77 @@ endif
 		source search.env && \
 		wf search cloudresource --kind $(KIND) --target $(RESOLVED_CLOUDACCESS) --filter "$$FILTER" --save --delete-after-save
 
-# Sort kinds by dependency order (dependencies first)
+# Resolve dependency order - simple topological sort
+# Usage: make resolve-order KINDS="aws-vpc aws-subnet aws-security-group"
+resolve-order:
+ifndef KINDS
+	@echo "Error: KINDS parameter is required"
+	@echo "Usage: make resolve-order KINDS=\"kind1 kind2 kind3\""
+	@exit 1
+endif
+	@echo "$(KINDS)" | tr ' ' '\n' | while read kind; do \
+		if [ -f "kind-validation/$$kind/search.env" ] && grep -q "REQUIRES_KIND_CREATE" "kind-validation/$$kind/search.env" 2>/dev/null; then \
+			dep=$$(grep "REQUIRES_KIND_CREATE" "kind-validation/$$kind/search.env" | sed 's/.*REQUIRES_KIND_CREATE=//'); \
+			echo "DEP:$$dep:$$kind"; \
+		else \
+			echo "NODEP:$$kind"; \
+		fi; \
+	done | awk -F: -v input_kinds="$(KINDS)" 'BEGIN { \
+		split(input_kinds, kinds_array, " "); \
+		for(i in kinds_array) input_set[kinds_array[i]] = 1; \
+	} { \
+		if($$1 == "DEP") { \
+			deps[$$3] = $$2; \
+			all_kinds[$$3] = 1; \
+			if($$2 in input_set) dep_targets[$$2] = 1; \
+		} else { \
+			all_kinds[$$2] = 1; \
+		} \
+	} END { \
+		result = ""; \
+		for(kind in kinds_array) { \
+			if(kinds_array[kind] in dep_targets) result = result kinds_array[kind] " "; \
+		} \
+		for(kind in kinds_array) { \
+			if(!(kinds_array[kind] in dep_targets)) result = result kinds_array[kind] " "; \
+		} \
+		gsub(/ +/, " ", result); \
+		gsub(/^ +| +$$/, "", result); \
+		print result; \
+	}'
+
+# Debug target to print dependency order for given KINDS
+# Usage: make debug-order KINDS="aws-vpc aws-subnet aws-security-group"
+debug-order:
+ifndef KINDS
+	@echo "Error: KINDS parameter is required"
+	@echo "Usage: make debug-order KINDS=\"kind1 kind2 kind3\""
+	@exit 1
+endif
+	@echo "=== Dependency Order Debug ==="
+	@echo "Input kinds: $(KINDS)"
+	@echo ""
+	@echo "Analyzing dependencies..."
+	@echo "$(KINDS)" | tr ' ' '\n' | while read kind; do \
+		if [ -f "kind-validation/$$kind/search.env" ]; then \
+			if grep -q "REQUIRES_KIND_CREATE" "kind-validation/$$kind/search.env" 2>/dev/null; then \
+				dep=$$(grep "REQUIRES_KIND_CREATE" "kind-validation/$$kind/search.env" | sed 's/.*REQUIRES_KIND_CREATE=//'); \
+				echo "  $$kind depends on: $$dep"; \
+			else \
+				echo "  $$kind has no dependencies"; \
+			fi; \
+		else \
+			echo "  $$kind: no search.env found (no dependencies)"; \
+		fi; \
+	done
+	@echo ""
+	@echo "Resolved order:"
+	@ordered_kinds=$$($(MAKE) resolve-order KINDS="$(KINDS)"); \
+	echo "  $$ordered_kinds"
+
+# Sort kinds by dependency order (dependencies first) - DEPRECATED, use debug-order instead
 sort-kinds:
+	@echo "DEPRECATED: Use 'make debug-order KINDS=\"kind1 kind2\"' instead"
 	@echo "$(KINDS)" | tr ' ' '\n' | while read kind; do \
 		if [ -f "kind-validation/$$kind/search.env" ] && grep -q "REQUIRES_KIND_CREATE" "kind-validation/$$kind/search.env"; then \
 			dep=$$(grep "REQUIRES_KIND_CREATE" "kind-validation/$$kind/search.env" | cut -d'"' -f2); \
@@ -143,14 +212,7 @@ ifndef KINDS
 endif
 	@echo "=== Running multi-kind workflow with dependency ordering ==="
 	@echo "Original kinds: $(KINDS)"
-	@ordered_kinds=$$(echo "$(KINDS)" | tr ' ' '\n' | while read kind; do \
-		if [ -f "kind-validation/$$kind/search.env" ] && grep -q "REQUIRES_KIND_CREATE" "kind-validation/$$kind/search.env" 2>/dev/null; then \
-			dep=$$(grep "REQUIRES_KIND_CREATE" "kind-validation/$$kind/search.env" | cut -d'\"' -f2); \
-			echo "DEP:$$dep:$$kind"; \
-		else \
-			echo "NODEP:$$kind"; \
-		fi; \
-		done | sort | awk -F: '{if($$1=="DEP") {deps[$$3]=$$2; kinds[$$3]=1; deps_list[$$2]=1} else {kinds[$$2]=1}} END {for(k in deps_list) if(k in kinds) print k; for(k in kinds) if(!(k in deps_list)) print k}'); \
+	@ordered_kinds=$$($(MAKE) resolve-order KINDS="$(KINDS)"); \
 	echo "Dependency-ordered kinds: $$ordered_kinds"; \
 	echo ""; \
 	failed=0; \
@@ -182,5 +244,5 @@ list-plans:
 	@echo "Available CloudResourcePlans:"
 	@find kind-validation -name "*-cr-plan.yaml" | sed 's|kind-validation/||g' | sed 's|/.*||g' | sed 's|^|  - |g' | sort | uniq
 
-.PHONY: apply apply-plan deploy deploy-remove search workflow workflow-multi sort-kinds list-kinds list-plans
+.PHONY: apply apply-plan deploy deploy-remove search workflow workflow-multi sort-kinds list-kinds list-plans resolve-order debug-order
 
