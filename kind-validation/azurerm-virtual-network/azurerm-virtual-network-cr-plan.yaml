@@ -1,0 +1,66 @@
+apiVersion: cloudresources.appvia.io/v2beta2
+kind: CloudResourcePlan
+metadata:
+  name: crk-azurerm-virtual-network
+spec:
+  version: 0.0.3
+  cloud: azure
+  description: Provisions an Azure Resource Group and Virtual Network using official Azure Verified Module for CloudResourceKind tests
+  inputs:
+  - description: Name of the Virtual Network (also used as base for resource group name)
+    name: name
+    type: string
+    validation:
+      pattern: '[a-z0-9-]+'
+      required: true
+      minLength: 3
+      maxLength: 80
+  - description: Name of the Resource Group
+    name: resource_group_name
+    type: string
+    validation:
+      pattern: '[a-z0-9-]+'
+      required: true
+      minLength: 3
+      maxLength: 80
+  - description: Azure location/region for the VNet and Resource Group
+    name: location
+    type: string
+    validation:
+      required: true
+      minLength: 1
+  scope:
+    allWorkspaces: true
+  terraform:
+    moduleURL: https://github.com/Azure/terraform-azurerm-avm-res-network-virtualnetwork
+    moduleVersion: v0.10.0
+    additionalProviders:
+    - "azapi"
+    tfVarsTemplate: |-
+      # Resource Group will be created if it doesn't exist
+      location                        = "{{ .Inputs.location }}"
+      name                           = "{{ .Inputs.name }}"
+      resource_group_name            = "{{ .Inputs.resource_group_name }}"
+
+      # Virtual Network configuration
+      address_space = ["10.0.0.0/16"]
+
+      # Create a default subnet
+      subnets = {
+        default = {
+          name             = "default"
+          address_prefixes = ["10.0.1.0/24"]
+        }
+      }
+
+      # Enable telemetry (Microsoft data collection)
+      enable_telemetry = true
+
+      # Tags for all resources
+      tags = {
+        Terraform   = "true"
+        Environment = "dev"
+        wf_crk      = "azurerm-virtual-network"
+        wf_stack    = "{{ .Stack.Name }}"
+        Purpose     = "CloudResourceKind Testing"
+      }

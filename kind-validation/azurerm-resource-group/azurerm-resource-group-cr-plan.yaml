@@ -1,0 +1,37 @@
+apiVersion: cloudresources.appvia.io/v2beta2
+kind: CloudResourcePlan
+metadata:
+  name: crk-azurerm-resource-group
+spec:
+  version: 0.0.1
+  cloud: azure
+  description: Provisions an Azure Resource Group for CloudResourceKind tests
+  inputs:
+  - description: Name of the Resource Group
+    name: name
+    type: string
+    validation:
+      pattern: '[a-z0-9-]+'
+      required: true
+      minLength: 1
+      maxLength: 90
+  - description: Azure location/region for the Resource Group
+    name: location
+    type: string
+    validation:
+      required: true
+      minLength: 1
+  scope:
+    allWorkspaces: true
+  terraform:
+    moduleURL: https://github.com/intelligentmachines/terraform-azure-resource-group
+    moduleVersion: v0.0.2
+    tfVarsTemplate: |-
+      group_name = "{{ .Inputs.name }}"
+      location   = "{{ .Inputs.location }}"
+
+      tags = {
+        Terraform   = "true"
+        wf_crk      = "azurerm-resource-group"
+        wf_stack    = "{{ .Stack.Name }}"
+      }

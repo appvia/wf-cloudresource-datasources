@@ -44,7 +44,7 @@ apply-plan: check-kind
 	fi
 
 # Deploy command template (shared between deploy and deploy-remove)
-DEPLOY_CMD = wf deploy -f kind-validation/$(KIND)/$(KIND)-wayfinder-create.yaml -i $(KIND)-kindtest --target cloud=$(RESOLVED_CLOUDACCESS) --out-file "kind-validation/$(KIND)/out.json"
+DEPLOY_CMD = wf deploy -f $(KIND)-wayfinder-create.yaml -i $(KIND)-kindtest --target cloud=$(RESOLVED_CLOUDACCESS) --out-file "out.json"
 
 # Deploy a cloud resource using wayfinder-create template
 # Usage: make deploy KIND=aws-kms-key CLOUDACCESS=my-cloud-access REMOVE=false
@@ -63,10 +63,10 @@ deploy:
 		fi; \
 		if [ "$(REMOVE)" = "true" ]; then \
 			echo "Removing cloud resource for kind: $(KIND) using cloud access: $(RESOLVED_CLOUDACCESS)"; \
-			$(DEPLOY_CMD) --remove; \
+			( cd kind-validation/$(KIND) && if [ -f "create.env" ]; then set -a; source create.env; fi; $(DEPLOY_CMD) --remove ); \
 		else \
 			echo "Deploying cloud resource for kind: $(KIND) using cloud access: $(RESOLVED_CLOUDACCESS)"; \
-			$(DEPLOY_CMD); \
+			( cd kind-validation/$(KIND) && if [ -f "create.env" ]; then set -a; source create.env; fi; $(DEPLOY_CMD) ); \
 		fi; \
 	fi
 
