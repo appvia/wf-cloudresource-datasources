@@ -1,0 +1,20 @@
+{
+  "stack": "crk-azurerm-resource-group",
+  "stackInstance": "azurerm-resource-group-kindtest",
+  "vars": {},
+  "publicDNS": {},
+  "privateDNS": {},
+  "componentOutputs": {
+    "rg": {
+      "id": {
+        "value": "/subscriptions/c9757c60-ea81-44e7-a7a3-022874e014ba/resourceGroups/crk-az-rg-kindtest"
+      },
+      "location": {
+        "value": "uksouth"
+      },
+      "name": {
+        "value": "crk-az-rg-kindtest"
+      }
+    }
+  }
+}

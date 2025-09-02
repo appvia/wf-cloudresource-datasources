@@ -5,7 +5,7 @@ metadata:
 spec:
   version: 0.0.3
   cloud: azure
-  description: Provisions an Azure Resource Group and Virtual Network using official Azure Verified Module for CloudResourceKind tests
+  description: Provisions an Azure Resource Group and Virtual Network using official Azure Verified Module for CloudResourceDataSource tests
   inputs:
   - description: Name of the Virtual Network (also used as base for resource group name)
     name: name
@@ -62,5 +62,5 @@ spec:
         Environment = "dev"
         wf_crk      = "azurerm-virtual-network"
         wf_stack    = "{{ .Stack.Name }}"
-        Purpose     = "CloudResourceKind Testing"
+        Purpose     = "CloudResourceDataSource Testing"
       }

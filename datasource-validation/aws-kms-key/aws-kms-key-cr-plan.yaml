@@ -5,7 +5,7 @@ metadata:
 spec:
   version: 0.0.3
   cloud: aws
-  description: Provisions an AWS KMS Key for CloudResourceKind tests
+  description: Provisions an AWS KMS Key for CloudResourceDataSource tests
   inputs:
   - description: Alias for the KMS key (without 'alias/' prefix)
     name: alias

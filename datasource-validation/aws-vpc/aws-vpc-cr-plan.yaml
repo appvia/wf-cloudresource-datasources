@@ -5,7 +5,7 @@ metadata:
 spec:
   version: 0.0.2
   cloud: aws
-  description: Provisions an AWS VPC for CloudResourceKind tests
+  description: Provisions an AWS VPC for CloudResourceDataSource tests
   inputs:
   - description: Name of the VPC
     name: name
