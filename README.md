@@ -41,7 +41,7 @@ The CloudResourceDataSource terraform is orchetsrated and run in a constrained, 
 BEFORE we can test finding resources using a CloudResourceSearch and CloudResourceDataSource we need to have the resources to find!
 
 Files to create an instance of a resource (NOT discover).
-1. Create a CloudResourcePlan .yaml file in `tests/[datasource]]/[datasource]-cr-plan.yaml` that will define how to create an instance of the kind.
+1. Create a CloudResourcePlan .yaml file in `tests/[datasource]/[datasource]-cr-plan.yaml` that will define how to create an instance of the kind.
         
     This must be to a valid terraform module to create (not find the resource). This will have valid tags so that we can find the resource later.
 
