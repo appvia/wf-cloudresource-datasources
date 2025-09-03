@@ -1,0 +1,51 @@
+apiVersion: cloudresources.appvia.io/v2beta2
+kind: CloudResourceDataSource
+metadata:
+  name: azurerm-virtual-network
+spec:
+  description: Azure Virtual Network resource kind
+  version: "1.0.0"
+  provider: terraform
+  cloud: azure
+  terraform:
+    search:
+      template: |
+        # List VNets via generic resources API filtered by tags
+        data "azurerm_resources" "vnets" {
+          type = "Microsoft.Network/virtualNetworks"
+
+          required_tags = var.resource_tags
+        }
+
+        output "output" {
+          value = [for v in data.azurerm_resources.vnets.resources : {
+            name                = v.name
+            resource_group_name = v.resource_group_name
+          }]
+        }
+
+    resource:
+      template: |
+        # Expect identifiers: name, resource_group_name
+        data "azurerm_virtual_network" "result" {
+          name                = var.name
+          resource_group_name = var.resource_group_name
+        }
+
+        output "id" {
+          value = data.azurerm_virtual_network.result.id
+        }
+
+        output "name" {
+          value = data.azurerm_virtual_network.result.name
+        }
+
+        output "address_space" {
+          value = data.azurerm_virtual_network.result.address_space
+        }
+
+        output "tags" {
+          value = data.azurerm_virtual_network.result.tags
+        }
+
+

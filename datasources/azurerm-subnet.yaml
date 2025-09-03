@@ -1,0 +1,53 @@
+apiVersion: cloudresources.appvia.io/v2beta2
+kind: CloudResourceDataSource
+metadata:
+  name: azurerm-subnet
+spec:
+  description: Azure Subnet resource kind
+  version: "1.0.0"
+  provider: terraform
+  cloud: azure
+  terraform:
+    search:
+      template: |
+        # List Subnets via generic resources API filtered by tags
+        data "azurerm_resources" "subnets" {
+          type = "Microsoft.Network/virtualNetworks/subnets"
+
+          required_tags = var.resource_tags
+        }
+
+        output "output" {
+          value = [for s in data.azurerm_resources.subnets.resources : {
+            name                = s.name
+            resource_group_name = s.resource_group_name
+            virtual_network_name = s.parent_name
+          }]
+        }
+
+    resource:
+      template: |
+        # Expect identifiers: name, resource_group_name, virtual_network_name
+        data "azurerm_subnet" "result" {
+          name                 = var.name
+          resource_group_name  = var.resource_group_name
+          virtual_network_name = var.virtual_network_name
+        }
+
+        output "id" {
+          value = data.azurerm_subnet.result.id
+        }
+
+        output "name" {
+          value = data.azurerm_subnet.result.name
+        }
+
+        output "address_prefixes" {
+          value = data.azurerm_subnet.result.address_prefixes
+        }
+
+        output "tags" {
+          value = data.azurerm_subnet.result.tags
+        }
+
+

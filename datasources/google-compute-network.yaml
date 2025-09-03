@@ -1,0 +1,66 @@
+apiVersion: cloudresources.appvia.io/v2beta2
+kind: CloudResourceDataSource
+metadata:
+  name: google-compute-network
+spec:
+  description: GCP VPC Network resource kind
+  version: "1.0.0"
+  provider: terraform
+  cloud: gcp
+  terraform:
+    search:
+      template: |
+        data "google_client_config" "current" {}
+
+        # List Networks using Cloud Asset Inventory
+        data "google_cloud_asset_search_all_resources" "networks" {
+          scope = "projects/${data.google_client_config.current.project}"
+          asset_types = [
+            "compute.googleapis.com/Network"
+          ]
+        }
+
+        locals {
+          desired_labels = var.resource_tags
+          all_networks = [for asset in data.google_cloud_asset_search_all_resources.networks.results : {
+            name   = regex("networks/([^/]+)$", asset.name)[0]
+            labels = try(asset.labels, {})
+          }]
+
+          filtered_networks = length(local.desired_labels) == 0 ? local.all_networks : [
+            for n in local.all_networks : n
+            if alltrue([
+              for k, v in local.desired_labels :
+              contains(keys(n.labels), k) && n.labels[k] == v
+            ])
+          ]
+        }
+
+        output "output" {
+          value = [for n in local.filtered_networks : {
+            name = n.name
+          }]
+        }
+    resource:
+      template: |
+        data "google_client_config" "current" {}
+
+        # Expect identifier: name
+        data "google_compute_network" "result" {
+          name    = var.name
+          project = data.google_client_config.current.project
+        }
+
+        output "name" {
+          value = data.google_compute_network.result.name
+        }
+
+        output "self_link" {
+          value = data.google_compute_network.result.self_link
+        }
+
+        output "auto_create_subnetworks" {
+          value = data.google_compute_network.result.auto_create_subnetworks
+        }
+
+

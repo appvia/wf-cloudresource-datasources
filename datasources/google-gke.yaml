@@ -1,0 +1,72 @@
+apiVersion: cloudresources.appvia.io/v2beta2
+kind: CloudResourceDataSource
+metadata:
+  name: google-gke
+spec:
+  description: Google GKE cluster resource kind
+  version: "1.0.0"
+  provider: terraform
+  cloud: gcp
+  terraform:
+    search:
+      template: |
+        # List GKE clusters using Cloud Asset Inventory
+        data "google_client_config" "current" {}
+
+        data "google_cloud_asset_search_all_resources" "gke_clusters" {
+          scope = "projects/${data.google_client_config.current.project}"
+          asset_types = [
+            "container.googleapis.com/Cluster"
+          ]
+        }
+
+        # Parse cluster information from asset inventory results
+        locals {
+          desired_labels = var.resource_tags
+          all_clusters = [for asset in data.google_cloud_asset_search_all_resources.gke_clusters.results : {
+            name     = split("/", asset.name)[5]  # Extract cluster name from full resource name
+            location = split("/", asset.name)[3]  # Extract location from full resource name
+            labels   = try(asset.labels, {})
+            asset    = asset
+          }]
+          
+          # Filter clusters by labels if provided
+          filtered_clusters = length(local.desired_labels) == 0 ? local.all_clusters : [
+            for cluster in local.all_clusters : cluster
+            if alltrue([
+              for k, v in local.desired_labels :
+              contains(keys(cluster.labels), k) && cluster.labels[k] == v
+            ])
+          ]
+        }
+
+        output "output" {
+          value = [for cluster in local.filtered_clusters : {
+            name     = cluster.name
+            location = cluster.location
+          }]
+        }
+    resource:
+      template: |
+        data "google_client_config" "current" {}
+
+        # Expect identifiers: name and location
+        data "google_container_cluster" "result" {
+          name     = var.name
+          location = data.google_client_config.current.region
+          project  = data.google_client_config.current.project
+        }
+
+        output "endpoint" {
+          value = data.google_container_cluster.result.endpoint
+        }
+
+        output "release_channel" {
+          value = try(data.google_container_cluster.result.release_channel.0.channel, null)
+        }
+
+        output "resource_labels" {
+          value = data.google_container_cluster.result.resource_labels
+        }
+
+

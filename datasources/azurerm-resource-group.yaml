@@ -1,0 +1,89 @@
+apiVersion: cloudresources.appvia.io/v2beta2
+kind: CloudResourceDataSource
+metadata:
+  name: azurerm-resource-group
+spec:
+  description: Azure Resource Group resource kind
+  version: "1.0.0"
+  provider: terraform
+  cloud: azure
+  terraform:
+    additionalProviders:
+    - "azapi"
+    search:
+      template: |
+        terraform {
+          required_providers {
+            azurerm = {
+              source  = "hashicorp/azurerm"
+              version = "~> 4.0"
+            }
+
+            azapi = {
+              source = "azure/azapi"
+              version = "~> 2.5"
+            }
+          }
+        }
+        # List Resource Groups using AzAPI against Resource Graph's ResourceContainers
+        # Optional tag filtering using var.resource_tags
+        data "azurerm_client_config" "current" {}
+
+        locals {
+          filter_tags = var.resource_tags
+        }
+
+        data "azapi_resource_list" "rgs" {
+          type      = "Microsoft.Resources/resourceGroups@2024-03-01"
+          parent_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
+        }
+
+        output "output" {
+          value = [
+            for r in data.azapi_resource_list.rgs.output.value : {
+              name = r.name
+            }
+            if length(local.filter_tags) == 0 || alltrue([
+              for k, v in local.filter_tags : try(r.tags[k] == v, false)
+            ])
+          ]
+        }
+
+    resource:
+      template: |
+        terraform {
+          required_providers {
+            azurerm = {
+              source  = "hashicorp/azurerm"
+              version = "~> 4.0"
+            }
+
+            azapi = {
+              source = "azure/azapi"
+              version = "~> 2.5"
+            }
+          }
+        }
+
+        # Expect identifier: name
+        data "azurerm_resource_group" "result" {
+          name = var.name
+        }
+
+        output "id" {
+          value = data.azurerm_resource_group.result.id
+        }
+
+        output "name" {
+          value = data.azurerm_resource_group.result.name
+        }
+
+        output "location" {
+          value = data.azurerm_resource_group.result.location
+        }
+
+        output "tags" {
+          value = data.azurerm_resource_group.result.tags
+        }
+
+
