@@ -44,7 +44,7 @@ apply-plan: check-datasource
 	fi
 
 # Deploy command template (shared between deploy and deploy-remove)
-DEPLOY_CMD = wf deploy -f $(DATASOURCE)-wayfinder-create.yaml -i $(DATASOURCE)-kindtest --target cloud=$(RESOLVED_CLOUDACCESS) --out-file "out.json"
+DEPLOY_CMD = wf deploy -f $(DATASOURCE)-wayfinder-create.yaml -i $(DATASOURCE)-srctest --target cloud=$(RESOLVED_CLOUDACCESS) --out-file "out.json"
 
 # Deploy a cloud resource using wayfinder-create template
 # Usage: make deploy DATASOURCE=aws-kms-key CLOUDACCESS=my-cloud-access REMOVE=false
