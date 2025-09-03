@@ -1,6 +1,6 @@
 # Wayfinder CloudResourceDataSources
 
-This repo contains the kinds of CloudResource dependency that wayfinder supports.
+This repo contains the types of CloudResource dependency that wayfinder supports.
 
 ## Overview
 
@@ -34,28 +34,30 @@ The CloudResourceDataSource terraform is orchetsrated and run in a constrained, 
 - Uses golang templating to create a set of terraform variables named using a single array item from the `output` array of map identifiers from above
 - Provides the outputs as defined to other dependent resources.
 
-## Validating new resources
-
-
-
-## New Kind Validation
+## New DataSource Tests
 
 ### Test Files
 
 BEFORE we can test finding resources using a CloudResourceSearch and CloudResourceDataSource we need to have the resources to find!
 
 Files to create an instance of a resource (NOT discover).
-1. Create a CloudResourcePlan .yaml file in `kind-validation/[kind]]/[kind]-cr-plan.yaml` that will define how to create an instance of the kind.
+1. Create a CloudResourcePlan .yaml file in `tests/[datasource]]/[datasource]-cr-plan.yaml` that will define how to create an instance of the kind.
         
     This must be to a valid terraform module to create (not find the resource). This will have valid tags so that we can find the resource later.
 
     It is imperative that the plan will work with the terraform module referenced and all required variables are templated suitably.
     
-2. Create a StackDefinitionData file in `kind-validation/[kind]]/[kind]-wayfinder-create.yaml` this will create the instance of the plan.
+2. Optionally create a `create.env` file to set any variables used by the `wf deploy -f [datasource]-wayfinder-create.yaml ...`.
+    E.g. Get some dependant fields used in creation:
+    ```
+    WF_VAR_rgName="$(cat ../azurerm-resource-group/out.json | jq -r '.componentOutputs.rg.name.value')"
+    ```
+
+2. Create a Wayfinder deployment yaml file in `tests/[datasource]]/[datasource]-wayfinder-create.yaml` this will create the instance of the plan.
 
     wf deploy is used with this file to create the test resource against a valid real cloud target.
 
-3. Create a search.env file in `kind-validation/[kind]]/search.env` to set the test parameters.
+3. Create a search.env file in `tests/[datasource]]/search.env` to set the test parameters.
     Use `FILTER` to define how to carry out the search (given resources created):
     ```
     FILTER="vpc_id=$(cat ../aws-vpc/out.json | jq -r '.componentOutputs.vpc.vpc_id.value')"

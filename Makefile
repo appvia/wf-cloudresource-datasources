@@ -35,11 +35,11 @@ apply: check-datasource
 # Apply a CloudResourcePlan by datasource name
 # Usage: make apply-plan DATASOURCE=aws-kms-key
 apply-plan: check-datasource
-	@if [ -f "datasource-validation/$(DATASOURCE)/$(DATASOURCE)-cr-plan.yaml" ]; then \
+	@if [ -f "tests/$(DATASOURCE)/$(DATASOURCE)-cr-plan.yaml" ]; then \
 		echo "Applying CloudResourcePlan for datasource: $(DATASOURCE)"; \
-		wf apply -f datasource-validation/$(DATASOURCE)/$(DATASOURCE)-cr-plan.yaml; \
+		wf apply -f tests/$(DATASOURCE)/$(DATASOURCE)-cr-plan.yaml; \
 	else \
-		echo "No plan found for datasource: $(DATASOURCE) (datasource-validation/$(DATASOURCE)/$(DATASOURCE)-cr-plan.yaml does not exist)"; \
+		echo "No plan found for datasource: $(DATASOURCE) (tests/$(DATASOURCE)/$(DATASOURCE)-cr-plan.yaml does not exist)"; \
 		echo "This is OK - not all datasources have plans."; \
 	fi
 
@@ -49,12 +49,12 @@ DEPLOY_CMD = wf deploy -f $(DATASOURCE)-wayfinder-create.yaml -i $(DATASOURCE)-k
 # Deploy a cloud resource using wayfinder-create template
 # Usage: make deploy DATASOURCE=aws-kms-key CLOUDACCESS=my-cloud-access REMOVE=false
 deploy:
-	@if [[ ! -f "datasource-validation/$(DATASOURCE)/$(DATASOURCE)-cr-plan.yaml" && ! -f "datasource-validation/$(DATASOURCE)/$(DATASOURCE)-wayfinder-create.yaml" ]]; then \
+	@if [[ ! -f "tests/$(DATASOURCE)/$(DATASOURCE)-cr-plan.yaml" && ! -f "tests/$(DATASOURCE)/$(DATASOURCE)-wayfinder-create.yaml" ]]; then \
 		echo "No plan found for datasource: $(DATASOURCE) - skipping deploy (this is OK)"; \
 		echo "Skipping deployment / removal."; \
 		exit 0; \
-	elif [ ! -f "datasource-validation/$(DATASOURCE)/$(DATASOURCE)-wayfinder-create.yaml" ]; then \
-		echo "Error: Plan exists but wayfinder-create template not found: datasource-validation/$(DATASOURCE)/$(DATASOURCE)-wayfinder-create.yaml"; \
+	elif [ ! -f "tests/$(DATASOURCE)/$(DATASOURCE)-wayfinder-create.yaml" ]; then \
+		echo "Error: Plan exists but wayfinder-create template not found: tests/$(DATASOURCE)/$(DATASOURCE)-wayfinder-create.yaml"; \
 		exit 1; \
 	else \
 		if [ -z "$(RESOLVED_CLOUDACCESS)" ]; then \
@@ -63,10 +63,10 @@ deploy:
 		fi; \
 		if [ "$(REMOVE)" = "true" ]; then \
 			echo "Removing cloud resource for datasource: $(DATASOURCE) using cloud access: $(RESOLVED_CLOUDACCESS)"; \
-			( cd datasource-validation/$(DATASOURCE) && if [ -f "create.env" ]; then set -a; source create.env; fi; $(DEPLOY_CMD) --remove ); \
+			( cd tests/$(DATASOURCE) && if [ -f "create.env" ]; then set -a; source create.env; fi; $(DEPLOY_CMD) --remove ); \
 		else \
 			echo "Deploying cloud resource for datasource: $(DATASOURCE) using cloud access: $(RESOLVED_CLOUDACCESS)"; \
-			( cd datasource-validation/$(DATASOURCE) && if [ -f "create.env" ]; then set -a; source create.env; fi; $(DEPLOY_CMD) ); \
+			( cd tests/$(DATASOURCE) && if [ -f "create.env" ]; then set -a; source create.env; fi; $(DEPLOY_CMD) ); \
 		fi; \
 	fi
 
@@ -84,12 +84,12 @@ ifeq ($(strip $(RESOLVED_CLOUDACCESS)),)
 	@echo "Usage: set per-cloud variable: CLOUDACCESS_AWS | CLOUDACCESS_AZURERM | CLOUDACCESS_GOOGLE"
 	@exit 1
 endif
-	@if [ ! -f "datasource-validation/$(DATASOURCE)/search.env" ]; then \
-		echo "Error: Search configuration not found: datasource-validation/$(DATASOURCE)/search.env"; \
+	@if [ ! -f "tests/$(DATASOURCE)/search.env" ]; then \
+		echo "Error: Search configuration not found: tests/$(DATASOURCE)/search.env"; \
 		exit 1; \
 	fi
 	@echo "Searching for cloud resources of datasource: $(DATASOURCE) using cloud access: $(RESOLVED_CLOUDACCESS)"
-	@cd datasource-validation/$(DATASOURCE) && \
+	@cd tests/$(DATASOURCE) && \
 		source search.env && \
 		wf search cloudresource --data-source $(DATASOURCE) --cloud-access $(RESOLVED_CLOUDACCESS) --filter "$$FILTER" --save --delete-after-save
 
@@ -102,8 +102,8 @@ ifndef DATASOURCES
 	@exit 1
 endif
 	@echo "$(DATASOURCES)" | tr ' ' '\n' | while read kind; do \
-		if [ -f "datasource-validation/$$kind/search.env" ] && grep -q "REQUIRES_DATASOURCE_CREATE" "datasource-validation/$$kind/search.env" 2>/dev/null; then \
-			dep=$$(grep "REQUIRES_DATASOURCE_CREATE" "datasource-validation/$$kind/search.env" | sed 's/.*REQUIRES_DATASOURCE_CREATE=//'); \
+		if [ -f "tests/$$kind/search.env" ] && grep -q "REQUIRES_DATASOURCE_CREATE" "tests/$$kind/search.env" 2>/dev/null; then \
+			dep=$$(grep "REQUIRES_DATASOURCE_CREATE" "tests/$$kind/search.env" | sed 's/.*REQUIRES_DATASOURCE_CREATE=//'); \
 			echo "DEP:$$dep:$$kind"; \
 		else \
 			echo "NODEP:$$kind"; \
@@ -145,9 +145,9 @@ endif
 	@echo ""
 	@echo "Analyzing dependencies..."
 	@echo "$(DATASOURCES)" | tr ' ' '\n' | while read kind; do \
-		if [ -f "datasource-validation/$$kind/search.env" ]; then \
-			if grep -q "REQUIRES_DATASOURCE_CREATE" "datasource-validation/$$kind/search.env" 2>/dev/null; then \
-				dep=$$(grep "REQUIRES_DATASOURCE_CREATE" "datasource-validation/$$kind/search.env" | sed 's/.*REQUIRES_DATASOURCE_CREATE=//'); \
+		if [ -f "tests/$$kind/search.env" ]; then \
+			if grep -q "REQUIRES_DATASOURCE_CREATE" "tests/$$kind/search.env" 2>/dev/null; then \
+				dep=$$(grep "REQUIRES_DATASOURCE_CREATE" "tests/$$kind/search.env" | sed 's/.*REQUIRES_DATASOURCE_CREATE=//'); \
 				echo "  $$kind depends on: $$dep"; \
 			else \
 				echo "  $$kind has no dependencies"; \
@@ -226,7 +226,7 @@ list-datasources:
 # List all available plans
 list-plans:
 	@echo "Available CloudResourcePlans:"
-	@find datasource-validation -name "*-cr-plan.yaml" | sed 's|datasource-validation/||g' | sed 's|/.*||g' | sed 's|^|  - |g' | sort | uniq
+	@find tests -name "*-cr-plan.yaml" | sed 's|tests/||g' | sed 's|/.*||g' | sed 's|^|  - |g' | sort | uniq
 
 .PHONY: apply apply-plan deploy deploy-remove search workflow workflow-multi list-datasources list-plans resolve-order list-order
 
