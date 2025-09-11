@@ -67,3 +67,12 @@ spec:
         }
 
 
+      outputs:
+      - name: name
+        type: string
+      - name: region
+        type: string
+      - name: network
+        type: string
+      - name: ip_cidr_range
+        type: string

@@ -67,3 +67,14 @@ spec:
           value = data.aws_eks_cluster.result.vpc_config[0].subnet_ids
         }
 
+      outputs:
+      - name: arn
+        type: string
+      - name: endpoint
+        type: string
+      - name: version
+        type: string
+      - name: vpc_id
+        type: string
+      - name: subnet_ids
+        type: list(string)

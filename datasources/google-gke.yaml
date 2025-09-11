@@ -69,4 +69,12 @@ spec:
           value = data.google_container_cluster.result.resource_labels
         }
 
+      outputs:
+      - name: name
+        type: string
+      - name: location
+        type: string
+      - name: endpoint
+        type: string
+
 

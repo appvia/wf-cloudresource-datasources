@@ -87,3 +87,10 @@ spec:
         }
 
 
+      outputs:
+      - name: name
+        type: string
+      - name: id
+        type: string
+      - name: location
+        type: string

@@ -64,3 +64,10 @@ spec:
         }
 
 
+      outputs:
+      - name: name
+        type: string
+      - name: self_link
+        type: string
+      - name: auto_create_subnetworks
+        type: bool

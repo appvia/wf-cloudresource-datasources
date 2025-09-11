@@ -65,3 +65,13 @@ spec:
         output "tags" {
           value = try(data.aws_security_group.result.tags, {})
         }
+
+      outputs:
+      - name: security_group_id
+        type: string
+      - name: name
+        type: string
+      - name: vpc_id
+        type: string
+      - name: description
+        type: string
