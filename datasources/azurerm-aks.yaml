@@ -54,3 +54,15 @@ spec:
         output "tags" {
           value = data.azurerm_kubernetes_cluster.result.tags
         }
+
+      outputs:
+      - name: name
+        type: string
+      - name: resource_group_name
+        type: string
+      - name: id
+        type: string
+      - name: kubernetes_version
+        type: string
+      - name: dns_prefix
+        type: string

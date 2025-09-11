@@ -67,3 +67,12 @@ spec:
         }
 
 
+      outputs:
+      - name: subnet_id
+        type: string
+      - name: vpc_id
+        type: string
+      - name: cidr_block
+        type: string
+      - name: availability_zone
+        type: string

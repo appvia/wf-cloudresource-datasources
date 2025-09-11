@@ -49,3 +49,10 @@ spec:
         }
 
 
+      outputs:
+      - name: name
+        type: string
+      - name: resource_group_name
+        type: string
+      - name: id
+        type: string

@@ -81,3 +81,13 @@ spec:
         output "key_spec" {
           value = data.aws_kms_key.result.key_spec
         }
+
+      outputs:
+      - name: key_id
+        type: string
+      - name: arn
+        type: string
+      - name: key_usage
+        type: string
+      - name: key_spec
+        type: string
