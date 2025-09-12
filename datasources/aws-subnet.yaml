@@ -10,29 +10,26 @@ spec:
   terraform:
     search:
       template: |
-        # List all Subnets and then filter by tags if provided
-        data "aws_subnets" "all" {}
+        # List Subnets; if resource_tags provided, apply server-side tag filters
+        data "aws_subnets" "all" {
+          dynamic "filter" {
+            for_each = var.resource_tags != null ? var.resource_tags : {}
+            content {
+              name   = "tag:${filter.key}"
+              values = [filter.value]
+            }
+          }
+        }
 
+        # Fetch details for each subnet ID returned
         data "aws_subnet" "details" {
           for_each = toset(data.aws_subnets.all.ids)
           id       = each.value
         }
 
-        locals {
-          # Filter Subnets based on tags if provided, otherwise return all
-          filtered_subnets = var.resource_tags == {} ? data.aws_subnet.details : {
-            for id, subnet in data.aws_subnet.details :
-            id => subnet
-            if alltrue([
-              for tag_key, tag_value in var.resource_tags :
-              lookup(subnet.tags, tag_key, "") == tag_value
-            ])
-          }
-        }
-
-        # Output the filtered results with consistent structure
+        # Output the results with a consistent structure
         output "output" {
-          value = [for id, subnet in local.filtered_subnets : {
+          value = [for id, subnet in data.aws_subnet.details : {
             subnet_id = id
             name      = lookup(subnet.tags, "Name", "")
             vpc_id    = subnet.vpc_id
