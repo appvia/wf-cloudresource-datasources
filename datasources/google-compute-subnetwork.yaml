@@ -21,10 +21,13 @@ spec:
         }
 
         locals {
-          desired_labels = var.resource_tags
+          desired_labels = var.resource_tags != null ? var.resource_tags : {}
           all_subnetworks = [for asset in data.google_cloud_asset_search_all_resources.subnetworks.results : {
-            name   = regex("subnetworks/([^/]+)$", asset.name)[0]
-            region = regex("/regions/([^/]+)/subnetworks/", asset.name)[0]
+            # Example asset.name:
+            # //compute.googleapis.com/projects/PROJECT/regions/REGION/subnetworks/SUBNETWORK
+            # Extract the last segment as the subnetwork name and the element after "regions" as the region
+            name   = element(split("/", asset.name), length(split("/", asset.name)) - 1)
+            region = element(split("/", asset.name), index(split("/", asset.name), "regions") + 1)
             labels = try(asset.labels, {})
           }]
 
