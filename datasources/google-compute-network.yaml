@@ -21,9 +21,12 @@ spec:
         }
 
         locals {
-          desired_labels = var.resource_tags
+          desired_labels = var.resource_tags != null ? var.resource_tags : {}
           all_networks = [for asset in data.google_cloud_asset_search_all_resources.networks.results : {
-            name   = regex("networks/([^/]+)$", asset.name)[0]
+            # Example asset.name:
+            # //compute.googleapis.com/projects/PROJECT/global/networks/NETWORK
+            # Extract the last segment as the network name
+            name   = element(split("/", asset.name), length(split("/", asset.name)) - 1)
             labels = try(asset.labels, {})
           }]
 

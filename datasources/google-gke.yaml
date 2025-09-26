@@ -22,10 +22,13 @@ spec:
 
         # Parse cluster information from asset inventory results
         locals {
-          desired_labels = var.resource_tags
+          desired_labels = var.resource_tags != null ? var.resource_tags : {}
           all_clusters = [for asset in data.google_cloud_asset_search_all_resources.gke_clusters.results : {
-            name     = split("/", asset.name)[5]  # Extract cluster name from full resource name
-            location = split("/", asset.name)[3]  # Extract location from full resource name
+            # Example asset.name:
+            # //container.googleapis.com/projects/PROJECT/locations/LOCATION/clusters/CLUSTER
+            # Extract the last segment as the cluster name and the element after "locations" as the location
+            name     = element(split("/", asset.name), length(split("/", asset.name)) - 1)
+            location = element(split("/", asset.name), index(split("/", asset.name), "locations") + 1)
             labels   = try(asset.labels, {})
             asset    = asset
           }]
@@ -53,12 +56,20 @@ spec:
         # Expect identifiers: name and location
         data "google_container_cluster" "result" {
           name     = var.name
-          location = data.google_client_config.current.region
+          location = var.location
           project  = data.google_client_config.current.project
         }
 
         output "endpoint" {
           value = data.google_container_cluster.result.endpoint
+        }
+
+        output "name" {
+          value = data.google_container_cluster.result.name
+        }
+
+        output "location" {
+          value = var.location
         }
 
         output "release_channel" {
