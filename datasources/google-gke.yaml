@@ -1,7 +1,8 @@
-apiVersion: cloudresources.appvia.io/v2beta2
+apiVersion: cloudresources/v3
 kind: CloudResourceDataSource
 metadata:
   name: google-gke
+  systemScope: true
 spec:
   description: Google GKE cluster resource kind
   version: "1.0.0"
