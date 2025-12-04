@@ -3,9 +3,7 @@ name: crk-azurerm-resource-group
 components:
   rg:
     type: CloudResource
-    plan:
-      name: crk-azurerm-resource-group
-      version: 0.0.1
+    plan: crk-azurerm-resource-group@0.0.1
     inputs:
     - name: name
       value: "crk-az-rg-kindtest"

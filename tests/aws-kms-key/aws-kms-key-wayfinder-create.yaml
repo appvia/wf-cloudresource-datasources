@@ -3,9 +3,7 @@ name: crk-aws-kms-key-create
 components:
   kms:
     type: CloudResource
-    plan:
-      name: crk-aws-kms-key
-      version: 0.0.3
+    plan: crk-aws-kms-key@0.0.3
     inputs:
     - name: alias
       value: "{{ .Stack.Name }}-{{ .Stack.Instance.Name }}"
