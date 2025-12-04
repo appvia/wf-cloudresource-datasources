@@ -1,4 +1,4 @@
-apiVersion: cloudresources.appvia.io/v2beta2
+apiVersion: cloudresources/v3
 kind: CloudResourcePlan
 metadata:
   name: crk-aws-kms-key

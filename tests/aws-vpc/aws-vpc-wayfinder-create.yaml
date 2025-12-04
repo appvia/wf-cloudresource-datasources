@@ -3,9 +3,7 @@ name: crk-aws-vpc-create
 components:
   vpc:
     type: CloudResource
-    plan:
-      name: crk-aws-vpc
-      version: 0.0.2
+    plan: crk-aws-vpc@0.0.2
     inputs:
     - name: name
       value: "crk-aws-vpc-{{ .Stack.Name }}-{{ .Stack.Instance.Name }}"

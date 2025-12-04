@@ -6,9 +6,7 @@ vars:
 components:
   vnet:
     type: CloudResource
-    plan:
-      name: crk-azurerm-virtual-network
-      version: 0.0.3
+    plan: crk-azurerm-virtual-network@0.0.3
     inputs:
     - name: name
       value: "crk-az-vnet-{{ .Stack.Instance.Name }}"
